@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: gas-oracle
+  name: gas-oracle
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      io.kompose.service: gas-oracle
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: gas-oracle
+    spec:
+      containers:
+      - env:
+        - name: GAS_PRICE_ORACLE_ETHEREUM_HTTP_URL
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_LAYER_TWO_HTTP_URL
+          value: "http://l2geth:8545"
+        # Default hardhat account 5
+        - name: GAS_PRICE_ORACLE_PRIVATE_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_OWNER_PRIVATE_KEY
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_ENABLE_L1_BASE_FEE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_ENABLE_L1_BASE_FEE
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_ENABLE_L2_GAS_PRICE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_ENABLE_L2_GAS_PRICE
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_TRANSACTION_GAS_PRICE
+          value: "0"
+        - name: GAS_PRICE_ORACLE_FLOOR_PRICE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_FLOOR_PRICE
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_TARGET_GAS_PER_SECOND
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_TARGET_GAS_PER_SECOND
+              name: envs-main-env
+        image: ethereumoptimism/gas-oracle:latest
+        imagePullPolicy: Never
+        name: gas-oracle
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

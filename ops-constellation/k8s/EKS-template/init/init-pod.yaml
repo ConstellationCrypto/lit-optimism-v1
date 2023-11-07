@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-pod
+spec:
+  containers:
+    - command:
+        - sleep
+        - "3600"
+      image: busybox
+      name: pods-simple-container
+      volumeMounts:
+      - mountPath: /constellation
+        name: efs-volume
+        subPath: constellation
+  volumes:
+  - name: efs-volume
+    persistentVolumeClaim:
+      claimName: efs-claim

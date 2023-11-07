@@ -1,0 +1,48 @@
+{
+  "name": "@constellation-labs/balance-maintainer",
+  "version": "0.7.8",
+  "description": "It maintains wallet balance to make sure the whole deployment is functioning in a self-sustaining manner.",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "start": "ts-node ./src/maintainer.ts",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist/ ./tsconfig.tsbuildinfo",
+    "lint:check": "eslint . --max-warnings=0",
+    "lint:fix": "yarn lint:check --fix",
+    "lint": "yarn lint:fix && yarn lint:check",
+    "pre-commit": "lint-staged",
+    "test": "hardhat test"
+  },
+  "keywords": [
+    "constellation",
+    "optimism",
+    "balance",
+    "maintainer"
+  ],
+  "license": "MIT",
+  "author": "Constellation Labs, INC.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ConstellationCrypto/Constellation-Optimism.git"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sns": "^3.154.0",
+    "@constellation-labs/contracts": "^0.7.8",
+    "@constellation-labs/sdk": "^0.7.8",
+    "@ethersproject/abstract-provider": "^5.6.1",
+    "@ethersproject/providers": "^5.6.8",
+    "dotenv": "^16.0.1",
+    "ethers": "^5.6.9"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.6",
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "chai": "^4.3.6",
+    "chai-spies": "^1.0.0",
+    "hardhat": "^2.9.6"
+  }
+}

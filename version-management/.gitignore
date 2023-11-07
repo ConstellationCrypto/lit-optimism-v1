@@ -1,0 +1,4 @@
+.terraform
+*.lock.hcl
+*.lock.info
+*.backup

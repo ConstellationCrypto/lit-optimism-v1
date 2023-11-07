@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: batch-submitter
+  name: batch-submitter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: batch-submitter
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: batch-submitter
+    spec:
+      containers:
+      - command:
+        - ./batch-submitter.sh
+        envFrom:
+          - configMapRef:
+              name: envs-batch-submitter-env
+        env:
+        - name: L1_ETH_RPC
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: L2_ETH_RPC
+          value: "http://l2geth:8545"
+        - name: URL
+          value: "http://deployer:8081/addresses.json"
+        - name: OVM_SEQUENCER_PRIVATE_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_SEQUENCER_PRIVATE_KEY
+              name: envs-main-env
+        - name: OVM_PROPOSER_PRIVATE_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_PROPOSER_PRIVATE_KEY
+              name: envs-main-env
+        - name: BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE
+          valueFrom:
+            configMapKeyRef:
+              key: BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE
+              name: envs-main-env
+        image: ethereumoptimism/batch-submitter-service:latest
+        imagePullPolicy: Never
+        name: batch-submitter
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

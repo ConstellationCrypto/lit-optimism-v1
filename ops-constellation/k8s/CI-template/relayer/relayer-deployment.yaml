@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: relayer
+  name: relayer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: relayer
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: relayer
+    spec:
+      containers:
+      - command:
+        - ./relayer.sh
+        env:
+        - name: MESSAGE_RELAYER__L1_RPC_PROVIDER
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: MESSAGE_RELAYER__L1_WALLET
+          value: 0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+        - name: MESSAGE_RELAYER__L2_RPC_PROVIDER
+          value: http://l2geth:8545
+        - name: RETRIES
+          value: "60"
+        image: ethereumoptimism/message-relayer:latest
+        imagePullPolicy: Never
+        name: relayer
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

@@ -1,0 +1,352 @@
+version: '3.4'
+
+x-system-env: &system-env
+  # OK to publish this since it will only ever be used in itests
+  SYSTEM_ADDRESS_0_DEPLOYER: '0xa961b0d6dce82db098cf70a42a14add3ee3db2d5'
+  SYSTEM_ADDRESS_0_DEPLOYER_KEY: 'a6aecc98b63bafb0de3b29ae9964b14acb4086057808be29f90150214ebd4a0f'
+
+  # OK to publish this since it will only ever be used in itests
+  SYSTEM_ADDRESS_1_DEPLOYER: '0xdfc82d475833a50de90c642770f34a9db7deb725'
+  SYSTEM_ADDRESS_1_DEPLOYER_KEY: '3b8d2345102cce2443acb240db6e87c8edd4bb3f821b17fab8ea2c9da08ea132'
+
+volumes:
+  l2geth-db:
+
+services:
+  deployer:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.packages
+      target: deployer
+    image: ethereumoptimism/deployer:${DOCKER_TAG_DEPLOYER:-latest}
+    entrypoint: ./deployer.sh
+    environment:
+      # Env vars for the deployment script.
+      AUTOMATICALLY_TRANSFER_OWNERSHIP: 'true'
+      CONTRACTS_RPC_URL: ${L1_RPC_URL}
+      CONTRACTS_DEPLOYER_KEY: ${DEPLOYER_PRIVATE_KEY}
+      CONTRACTS_TARGET_NETWORK: 'constellation'
+
+      # TODO: replace with script that parses config.json then populates env variables for a docker container
+      IS_FORKED_NETWORK: ${IS_FORKED_NETWORK}
+      NUM_DEPLOYMENT_CONFIRMATIONS: ${NUM_DEPLOYMENT_CONFIRMATIONS}
+      GAS_PRICE: ${GAS_PRICE}
+      L2_BLOCK_GAS_LIMIT: ${L2_BLOCK_GAS_LIMIT}
+      L2_CHAIN_ID: ${L2_CHAIN_ID}
+      CTC_L2_GAS_DISCOUNT_DIVISOR: ${CTC_L2_GAS_DISCOUNT_DIVISOR}
+      CTC_ENQUEUE_GAS_COST: ${CTC_ENQUEUE_GAS_COST}
+      SCC_FAULT_PROOF_WINDOW_SECONDS: ${SCC_FAULT_PROOF_WINDOW_SECONDS}
+      SCC_SEQUENCER_PUBLISH_WINDOW_SECONDS: ${SCC_SEQUENCER_PUBLISH_WINDOW_SECONDS}
+      OVM_SEQUENCER_ADDRESS: ${OVM_SEQUENCER_ADDRESS}
+      OVM_PROPOSER_ADDRESS: ${OVM_PROPOSER_ADDRESS}
+      OVM_BLOCK_SIGNER_ADDRESS: ${OVM_BLOCK_SIGNER_ADDRESS}
+      OVM_FEE_WALLET_ADDRESS: ${L1_FEE_WALLET_ADDRESS}
+      OVM_ADDRESS_MANAGER_OWNER: ${OVM_ADDRESS_MANAGER_OWNER}
+      OVM_GAS_PRICE_ORACLE_OWNER: ${GAS_PRICE_ORACLE_OWNER}
+      OVM_WHITELIST_OWNER: ${OVM_WHITELIST_OWNER}
+      GAS_PRICE_ORACLE_OVERHEAD: ${GAS_PRICE_ORACLE_OVERHEAD}
+      GAS_PRICE_ORACLE_SCALAR: ${GAS_PRICE_ORACLE_SCALAR}
+      GAS_PRICE_ORACLE_DECIMALS: ${GAS_PRICE_ORACLE_DECIMALS}
+      GAS_PRICE_ORACLE_L1_BASE_FEE: ${GAS_PRICE_ORACLE_L1_BASE_FEE}
+      GAS_PRICE_ORACLE_L2_GAS_PRICE: ${GAS_PRICE_ORACLE_L2_GAS_PRICE}
+      HF_BERLIN_BLOCK: ${HF_BERLIN_BLOCK}
+      TEST_FPE: ${TEST_FPE}
+      L1_FPE_ADDRESS: ${L1_FPE_ADDRESS}
+      FPE_MIN_PRICE_RATIO: ${FPE_MIN_PRICE_RATIO}
+      FPE_PRICE_RATIO: ${FPE_PRICE_RATIO}
+      FPE_MAX_PRICE_RATIO: ${FPE_MAX_PRICE_RATIO}
+      FPE_TOKEN_NAME: ${FPE_TOKEN_NAME}
+      FPE_TOKEN_SYMBOL: ${FPE_TOKEN_SYMBOL}
+      L1_TOKEN_NAME: ${L1_TOKEN_NAME}
+      L1_TOKEN_SYMBOL: ${L1_TOKEN_SYMBOL}
+
+    ports:
+      # expose the service to the host for getting the contract addrs
+      - ${DEPLOYER_PORT:-8080}:8081
+
+    volumes:
+      - "../.constellation:/opt/optimism/.constellation"
+
+  dtl:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - deployer
+      - l2geth
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.packages
+      target: data-transport-layer
+    image: ethereumoptimism/data-transport-layer:${DOCKER_TAG_DATA_TRANSPORT_LAYER:-latest}
+    # override with the dtl script and the env vars required for it
+    entrypoint: ./dtl.sh
+    env_file:
+      - ./envs/dtl.env
+    # set the rest of the env vars for the network whcih do not
+    # depend on the docker-compose setup
+    environment:
+      # used for setting the address manager address
+      URL: http://deployer:8081/addresses.json
+      # connect to the 2 layers
+      DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT: ${L1_RPC_URL}
+      DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT: http://l2geth:8545
+      DATA_TRANSPORT_LAYER__SYNC_FROM_L2: 'true'
+      DATA_TRANSPORT_LAYER__L2_CHAIN_ID: ${L2_CHAIN_ID}
+      DATA_TRANSPORT_LAYER__L1_START_HEIGHT: ${L1_START_HEIGHT}
+
+    ports:
+      - ${DTL_PORT:-7878}:7878  
+  
+  fault_detector:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - l2geth
+    deploy:
+      replicas: 1
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.packages
+      target: fault-detector
+    image: ethereumoptimism/fault-detector:${DOCKER_TAG_FAULT_DETECTOR:-latest}
+    entrypoint: ./detector.sh
+    environment:
+      FAULT_DETECTOR__L1_RPC_PROVIDER: ${L1_RPC_URL}
+      FAULT_DETECTOR__L2_RPC_PROVIDER: http://l2geth:8545
+      FAULT_DETECTOR__PAUSE_BRIDGE_ON_FAULT: 'true'
+      FAULT_DETECTOR__ADDRESS_ENDPOINT: http://deployer:8081/addresses.json
+      FAULT_DETECTOR__CROSS_DOMAIN_MESSENGER_OWNER: ${OVM_ADDRESS_MANAGER_OWNER_PRIVATE_KEY}
+      FAULT_DETECTOR__KMS_ID: ${OVM_ADDRESS_MANAGER_OWNER_KMS_ID}
+      FAULT_DETECTOR__REGION: ${REGION}
+      FAULT_DETECTOR__START_BATCH_INDEX: 0
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+  l2geth:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - deployer
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.l2
+    image: ethereumoptimism/l2geth:${DOCKER_TAG_L2GETH:-latest}
+    # override with the geth script and the env vars required for it
+    entrypoint: sh ./geth.sh --metrics --pprof --pprofaddr 0.0.0.0
+    env_file:
+      - ./envs/geth.env
+    environment:
+      <<: *system-env
+      ETH1_HTTP: ${L1_RPC_URL}
+      ROLLUP_TIMESTAMP_REFRESH: 1s
+      ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
+      # connecting to the DTL
+      ROLLUP_CLIENT_HTTP: http://dtl:7878
+      ETH1_CTC_DEPLOYMENT_HEIGHT: ${L1_START_HEIGHT}
+      RETRIES: 60
+      OVM_BLOCK_SIGNER_PRIVATE_KEY: ${OVM_BLOCK_SIGNER_PRIVATE_KEY}
+      OVM_BLOCK_SIGNER_ADDRESS: ${OVM_BLOCK_SIGNER_ADDRESS}
+
+      ROLLUP_ENFORCE_FEES: ${ROLLUP_ENFORCE_FEES}
+      ROLLUP_FEE_THRESHOLD_DOWN: 0.9
+      ROLLUP_FEE_THRESHOLD_UP: 1.1
+      CHAIN_ID: ${L2_CHAIN_ID}
+      NETWORK_ID: ${L2_CHAIN_ID}
+    ports:
+      - 6060:6060
+      - ${L2GETH_HTTP_PORT:-8545}:8545
+      - ${L2GETH_WS_PORT:-8546}:8546
+    volumes:
+      - "l2geth-db:/db"
+
+  verifier:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - deployer
+      - dtl
+      - l2geth
+    deploy:
+      replicas: 1
+    build:
+      context: ..
+      dockerfile:  ./ops-constellation/docker/Dockerfile.l2
+    image: ethereumoptimism/l2geth:${DOCKER_TAG_L2GETH:-latest}
+    entrypoint: sh ./geth.sh
+    env_file:
+      - ./envs/geth.env
+    environment:
+      <<: *system-env
+      ETH1_HTTP: ${L1_RPC_URL}
+      SEQUENCER_CLIENT_HTTP: http://l2geth:8545
+      ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
+      ROLLUP_CLIENT_HTTP: http://dtl:7878
+      ROLLUP_BACKEND: 'l1'
+      ETH1_CTC_DEPLOYMENT_HEIGHT: ${L1_START_HEIGHT}
+      RETRIES: 60
+      ROLLUP_VERIFIER_ENABLE: 'true'
+      OVM_BLOCK_SIGNER_PRIVATE_KEY: ${OVM_BLOCK_SIGNER_PRIVATE_KEY}
+      OVM_BLOCK_SIGNER_ADDRESS: ${OVM_BLOCK_SIGNER_ADDRESS}
+    ports:
+      - ${VERIFIER_HTTP_PORT:-8547}:8545
+      - ${VERIFIER_WS_PORT:-8548}:8546
+
+  replica:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - dtl
+      - l2geth
+    deploy:
+      replicas: 1
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.l2
+    image: ethereumoptimism/l2geth:${DOCKER_TAG_L2GETH:-latest}
+    entrypoint: sh ./geth.sh
+    env_file:
+      - ./envs/geth.env
+    environment:
+      <<: *system-env
+      ETH1_HTTP: ${L1_RPC_URL}
+      SEQUENCER_CLIENT_HTTP: http://l2geth:8545
+      ROLLUP_STATE_DUMP_PATH: http://deployer:8081/state-dump.latest.json
+      ROLLUP_CLIENT_HTTP: http://dtl:7878
+      ROLLUP_BACKEND: 'l2'
+      ROLLUP_VERIFIER_ENABLE: 'true'
+      ETH1_CTC_DEPLOYMENT_HEIGHT: ${L1_START_HEIGHT}
+      RETRIES: 60
+      OVM_BLOCK_SIGNER_PRIVATE_KEY: ${OVM_BLOCK_SIGNER_PRIVATE_KEY}
+      OVM_BLOCK_SIGNER_ADDRESS: ${OVM_BLOCK_SIGNER_ADDRESS}
+    ports:
+      - ${REPLICA_HTTP_PORT:-8549}:8545
+      - ${REPLICA_WS_PORT:-8550}:8546
+
+  integration_tests:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    deploy:
+      replicas: ${INTEGRATION_TEST_REPLICAS:-1}
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.packages
+      target: integration-tests
+    image: ethereumoptimism/integration-tests:${DOCKER_TAG_INTEGRATION_TESTS:-latest}
+    entrypoint: ./integration-tests.sh
+    environment:
+      <<: *system-env
+      L1_URL: ${L1_RPC_URL}
+      L2_URL: http://l2geth:8545
+      REPLICA_URL: http://replica:8545
+      VERIFIER_URL: http://verifier:8545
+      URL: http://deployer:8081/addresses.json
+      ENABLE_GAS_REPORT: 1
+      NO_NETWORK: 1
+      BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE: ${BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE}
+
+      RUN_SYSTEM_ADDRESS_TESTS: 'false'
+      RUN_HEALTHCHECK_TESTS: 'false'
+      TEST_FPE: ${TEST_FPE:-false}
+      L1_FPE_ADDRESS: ${L1_FPE_ADDRESS}
+
+      PRIVATE_KEY: ${DEPLOYER_PRIVATE_KEY}
+      L2_CHAINID: ${L2_CHAIN_ID}
+      GAS_PRICE_ORACLE_PRIVATE_KEY: ${GAS_PRICE_ORACLE_OWNER_PRIVATE_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      REGION: ${REGION}
+      GAS_PRICE_ORACLE_KMS_ID: ${GAS_PRICE_ORACLE_KMS_ID}
+
+  gas_oracle:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    deploy:
+      replicas: ${GAS_ORACLE_REPLICAS:-1}
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.gas_oracle
+    image: ethereumoptimism/gas-oracle:${DOCKER_TAG_GAS_ORACLE:-latest}
+    environment:
+      GAS_PRICE_ORACLE_ETHEREUM_HTTP_URL: ${L1_RPC_URL}
+      GAS_PRICE_ORACLE_LAYER_TWO_HTTP_URL: http://l2geth:8545
+      GAS_PRICE_ORACLE_PRIVATE_KEY: ${GAS_PRICE_ORACLE_OWNER_PRIVATE_KEY}
+      GAS_PRICE_ORACLE_ENABLE_L1_BASE_FEE: ${GAS_PRICE_ORACLE_ENABLE_L1_BASE_FEE}
+      GAS_PRICE_ORACLE_ENABLE_L2_GAS_PRICE: ${GAS_PRICE_ORACLE_ENABLE_L2_GAS_PRICE}
+
+      REGION: ${REGION}
+      GAS_PRICE_ORACLE_KMS_ID: ${GAS_PRICE_ORACLE_KMS_ID}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+      # Necessary to make sure the oracle owner can send 0 gas transactions
+      GAS_PRICE_ORACLE_TRANSACTION_GAS_PRICE: '0'
+
+      # The following two parameters can be adjusted without bringing down the chain
+      # Gas price floor set to 0.001 gwei
+      GAS_PRICE_ORACLE_FLOOR_PRICE: ${GAS_PRICE_ORACLE_FLOOR_PRICE}
+      # Optimism will increase or decrease gas price depending on current gas per second being
+      # processed by the network to hit the target gas per second
+      GAS_PRICE_ORACLE_TARGET_GAS_PER_SECOND: ${GAS_PRICE_ORACLE_TARGET_GAS_PER_SECOND}
+
+  batch_submitter:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - deployer
+      - l2geth
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.batch_submitter
+    image: ethereumoptimism/batch-submitter-service:${DOCKER_TAG_BATCH_SUBMITTER_SERVICE:-latest}
+    entrypoint: ./batch-submitter.sh
+    env_file:
+      - ./envs/batch-submitter.env
+    environment:
+      L1_ETH_RPC: ${L1_RPC_URL}
+      L2_ETH_RPC: http://l2geth:8545
+      URL: http://deployer:8081/addresses.json
+      OVM_SEQUENCER_PRIVATE_KEY: ${OVM_SEQUENCER_PRIVATE_KEY}
+      OVM_PROPOSER_PRIVATE_KEY: ${OVM_PROPOSER_PRIVATE_KEY}
+      REGION: ${REGION}
+      OVM_SEQUENCER_KMS_ID: ${OVM_SEQUENCER_KMS_ID}
+      OVM_PROPOSER_KMS_ID: ${OVM_PROPOSER_KMS_ID}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+
+      BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE: ${BATCH_SUBMITTER_SEQUENCER_BATCH_TYPE}
+      BATCH_SUBMITTER_METRICS_SERVER_ENABLE: "true"
+      BATCH_SUBMITTER_METRICS_PORT: 7300
+      BATCH_SUBMITTER_METRICS_HOSTNAME: 0.0.0.0
+
+  proxyd:
+    extra_hosts:
+    - "host.docker.internal:host-gateway" 
+    depends_on:
+      - deployer
+      - l2geth
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.proxyd
+    image: ethereumoptimism/proxyd:${DOCKER_TAG_PROXYD:-latest}
+    entrypoint: ["/bin/entrypoint.sh", "/bin/proxyd", "/proxyd.toml"]
+    environment:
+      L2GETH_HTTP_PORT: http://l2geth:8545
+      L2GETH_WS_PORT: http://l2geth:8546
+    ports:
+      - ${PROXYD_HTTP_PORT:-10001}:10001
+      - ${PROXYD_WS_PORT:-10002}:10002
+
+  # balance-maintainer is supposed to handle multiple deployments, therefore its deployment will be handled separately from other services here
+  # Putting it here is merely for building the docker image
+  balance-maintainer:
+    deploy:
+      replicas: 0
+    build:
+      context: ..
+      dockerfile: ./ops-constellation/docker/Dockerfile.packages
+      target: balance-maintainer
+    image: ethereumoptimism/balance-maintainer:${DOCKER_TAG_BALANCE_MAINTAINER:-latest}
+    entrypoint: ["echo", "build only"]
+

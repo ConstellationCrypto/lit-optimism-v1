@@ -1,0 +1,6 @@
+{
+  "name": "@eth-optimism/indexer",
+  "version": "0.7.8",
+  "private": true,
+  "license": "MIT"
+}

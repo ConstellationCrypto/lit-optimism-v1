@@ -1,0 +1,46 @@
+name: golangci-lint
+on:
+  push:
+    paths:
+      - 'gas-oracle/**'
+      - 'batch-submitter/**'
+      - 'bss-core/**'
+      - 'teleportr/**'
+    branches:
+      - 'master'
+      - 'develop'
+      - '*rc'
+      - 'release/*'
+  pull_request:
+    branches:
+      - '*'
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+#       - name: golangci-lint gas-oracle
+#         uses: golangci/golangci-lint-action@v2
+#         with:
+#           version: v1.29
+#           working-directory: gas-oracle
+#           skip-go-installation: true
+#       - name: golangci-lint batch-submitter
+#         uses: golangci/golangci-lint-action@v2
+#         with:
+#           version: v1.29
+#           working-directory: batch-submitter
+#           skip-go-installation: true
+#       - name: golangci-lint bss-core
+#         uses: golangci/golangci-lint-action@v2
+#         with:
+#           version: v1.29
+#           working-directory: bss-core
+#           skip-go-installation: true
+#       - name: golangci-lint teleportr
+#         uses: golangci/golangci-lint-action@v2
+#         with:
+#           version: v1.29
+#           working-directory: teleportr
+#           skip-go-installation: true

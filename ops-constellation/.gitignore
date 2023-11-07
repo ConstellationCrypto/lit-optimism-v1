@@ -1,0 +1,4 @@
+.env
+k8s/config
+hardhat.config.js
+my.env

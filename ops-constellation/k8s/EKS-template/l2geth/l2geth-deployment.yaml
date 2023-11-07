@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: l2geth
+  name: l2geth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: l2geth
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: l2geth
+    spec:
+      containers:
+      - command: ["sh", "./geth.sh", "--metrics", "--pprof", "--pprofaddr", "0.0.0.0"]
+        envFrom:
+          - configMapRef:
+              name: envs-geth-env
+          - configMapRef:
+              name: envs-system-addr-env
+        env:
+        - name: ETH1_HTTP
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: ROLLUP_TIMESTAMP_REFRESH
+          value: "1s"
+        - name: ROLLUP_STATE_DUMP_PATH
+          value: "http://deployer:8081/state-dump.latest.json"
+        # connecting to the DTL
+        - name: ROLLUP_CLIENT_HTTP
+          value: "http://dtl:7878"
+        - name: ETH1_CTC_DEPLOYMENT_HEIGHT
+          valueFrom:
+            configMapKeyRef:
+              key: L1_START_HEIGHT
+              name: envs-main-env
+        - name: RETRIES
+          value: "60"
+        - name: OVM_BLOCK_SIGNER_PRIVATE_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_BLOCK_SIGNER_PRIVATE_KEY
+              name: envs-main-env
+        - name: OVM_BLOCK_SIGNER_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_BLOCK_SIGNER_ADDRESS
+              name: envs-main-env
+        - name: ROLLUP_ENFORCE_FEES
+          valueFrom:
+            configMapKeyRef:
+              key: ROLLUP_ENFORCE_FEES
+              name: envs-main-env
+        - name: ROLLUP_FEE_THRESHOLD_DOWN
+          value: "0.9"
+        - name: ROLLUP_FEE_THRESHOLD_UP
+          value: "1.1"
+        - name: CHAIN_ID
+          valueFrom:
+            configMapKeyRef:
+              key: L2_CHAIN_ID
+              name: envs-main-env
+        - name: NETWORK_ID
+          valueFrom:
+            configMapKeyRef:
+              key: L2_CHAIN_ID
+              name: envs-main-env
+        image: 611878847432.dkr.ecr.us-west-2.amazonaws.com/l2geth:latest
+        imagePullPolicy: Always
+        name: l2geth
+        ports:
+        - containerPort: 6060
+        - containerPort: 8545
+        - containerPort: 8546
+        resources:
+          requests:
+            memory: "12Gi"
+        volumeMounts:
+        - mountPath: /db
+          name: l2geth-db
+          subPath: db
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: l2geth-db
+        persistentVolumeClaim:
+          claimName: efs-claim
+status: {}

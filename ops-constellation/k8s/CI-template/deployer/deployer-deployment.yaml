@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: deployer
+  name: deployer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: deployer
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: deployer
+    spec:
+      containers:
+      - command:
+        - ./deployer.sh
+        env:
+        # Env vars for the deployment script.
+        - name: AUTOMATICALLY_TRANSFER_OWNERSHIP
+          value: "true"
+        - name: CONTRACTS_RPC_URL
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: CONTRACTS_DEPLOYER_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: DEPLOYER_PRIVATE_KEY
+              name: envs-main-env
+        - name: CONTRACTS_TARGET_NETWORK
+          value: "constellation"
+        - name: IS_FORKED_NETWORK
+          valueFrom:
+            configMapKeyRef:
+              key: IS_FORKED_NETWORK
+              name: envs-main-env
+        - name: NUM_DEPLOYMENT_CONFIRMATIONS
+          valueFrom:
+            configMapKeyRef:
+              key: NUM_DEPLOYMENT_CONFIRMATIONS
+              name: envs-main-env
+        - name: GAS_PRICE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE
+              name: envs-main-env
+        - name: L2_BLOCK_GAS_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              key: L2_BLOCK_GAS_LIMIT
+              name: envs-main-env
+        - name: L2_CHAIN_ID
+          valueFrom:
+            configMapKeyRef:
+              key: L2_CHAIN_ID
+              name: envs-main-env
+        - name: CTC_L2_GAS_DISCOUNT_DIVISOR
+          valueFrom:
+            configMapKeyRef:
+              key: CTC_L2_GAS_DISCOUNT_DIVISOR
+              name: envs-main-env
+        - name: CTC_ENQUEUE_GAS_COST
+          valueFrom:
+            configMapKeyRef:
+              key: CTC_ENQUEUE_GAS_COST
+              name: envs-main-env
+        - name: SCC_FAULT_PROOF_WINDOW_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              key: SCC_FAULT_PROOF_WINDOW_SECONDS
+              name: envs-main-env
+        - name: SCC_SEQUENCER_PUBLISH_WINDOW_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              key: SCC_SEQUENCER_PUBLISH_WINDOW_SECONDS
+              name: envs-main-env
+        - name: OVM_SEQUENCER_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_SEQUENCER_ADDRESS
+              name: envs-main-env
+        - name: OVM_PROPOSER_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_PROPOSER_ADDRESS
+              name: envs-main-env
+        - name: OVM_BLOCK_SIGNER_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_BLOCK_SIGNER_ADDRESS
+              name: envs-main-env
+        - name: OVM_FEE_WALLET_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: L1_FEE_WALLET_ADDRESS
+              name: envs-main-env
+        - name: OVM_ADDRESS_MANAGER_OWNER
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_ADDRESS_MANAGER_OWNER
+              name: envs-main-env
+        - name: OVM_GAS_PRICE_ORACLE_OWNER
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_OWNER
+              name: envs-main-env
+        - name: OVM_WHITELIST_OWNER
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_WHITELIST_OWNER
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_OVERHEAD
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_OVERHEAD
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_SCALAR
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_SCALAR
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_DECIMALS
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_DECIMALS
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_L1_BASE_FEE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_L1_BASE_FEE
+              name: envs-main-env
+        - name: GAS_PRICE_ORACLE_L2_GAS_PRICE
+          valueFrom:
+            configMapKeyRef:
+              key: GAS_PRICE_ORACLE_L2_GAS_PRICE
+              name: envs-main-env
+        - name: HF_BERLIN_BLOCK
+          valueFrom:
+            configMapKeyRef:
+              key: HF_BERLIN_BLOCK
+              name: envs-main-env
+        - name: TEST_FPE
+          valueFrom:
+            configMapKeyRef:
+              key: TEST_FPE
+              name: envs-main-env
+        - name: L1_FPE_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: L1_FPE_ADDRESS
+              name: envs-main-env
+        - name: FPE_MIN_PRICE_RATIO
+          valueFrom:
+            configMapKeyRef:
+              key: FPE_MIN_PRICE_RATIO
+              name: envs-main-env
+        - name: FPE_PRICE_RATIO
+          valueFrom:
+            configMapKeyRef:
+              key: FPE_PRICE_RATIO
+              name: envs-main-env
+        - name: FPE_MAX_PRICE_RATIO
+          valueFrom:
+            configMapKeyRef:
+              key: FPE_MAX_PRICE_RATIO
+              name: envs-main-env
+        - name: FPE_TOKEN_NAME
+          valueFrom:
+            configMapKeyRef:
+              key: FPE_TOKEN_NAME
+              name: envs-main-env
+        - name: TOKEN_SYMBOL
+          valueFrom:
+            configMapKeyRef:
+              key: TOKEN_SYMBOL
+              name: envs-main-env
+
+        image: ethereumoptimism/deployer:latest
+        imagePullPolicy: Never
+        name: deployer
+        ports:
+        - containerPort: 8081
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/optimism/.constellation
+          name: empty-dir
+          subPath: constellation
+      volumes:
+      - name: empty-dir
+        persistentVolumeClaim:
+          claimName: empty-pvc
+      restartPolicy: Always
+      serviceAccountName: ""
+status: {}

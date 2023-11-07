@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: l2geth
+  name: l2geth
+spec:
+  ports:
+  - name: "6060"
+    port: 6060
+    targetPort: 6060
+  - name: "8545"
+    port: 8545
+    targetPort: 8545
+  - name: "8546"
+    port: 8546
+    targetPort: 8546
+  selector:
+    io.kompose.service: l2geth
+status:
+  loadBalancer: {}

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: "pv-volume"
+spec:
+  capacity:
+    storage: "100Mi"
+  accessModes:
+    - "ReadWriteMany"
+  hostPath:
+    path: /tmp/hostpath_pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "empty-pvc"
+spec:
+  accessModes:
+    - "ReadWriteMany"
+  resources:
+    requests:
+      storage: "100Mi"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-pod
+spec:
+  containers:
+    - command:
+        - sleep
+        - "3600"
+      image: busybox
+      name: pods-simple-container
+      volumeMounts:
+      - mountPath: /constellation
+        name: empty-dir
+        subPath: constellation
+  volumes:
+  - name: empty-dir
+    persistentVolumeClaim:
+      claimName: empty-pvc

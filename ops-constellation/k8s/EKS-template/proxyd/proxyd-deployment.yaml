@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f docker-compose-constellation.yml
+    kompose.version: 1.26.1 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: proxyd
+  name: proxyd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: proxyd
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f docker-compose-constellation.yml
+        kompose.version: 1.26.1 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: proxyd
+    spec:
+      containers:
+        - command:
+            - /bin/entrypoint.sh
+            - /bin/proxyd
+            - /proxyd.toml
+          env:
+            - name: L2GETH_HTTP_PORT
+              value: http://l2geth:8545
+            - name: L2GETH_WS_PORT
+              value: http://l2geth:8546
+          image: 611878847432.dkr.ecr.us-west-2.amazonaws.com/proxyd:latest
+          imagePullPolicy: Always
+          name: proxyd
+          ports:
+            - containerPort: 10001
+            - containerPort: 10002
+          resources:
+            requests:
+              memory: "1000Mi"
+      restartPolicy: Always
+status: {}

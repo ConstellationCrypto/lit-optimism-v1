@@ -1,0 +1,4 @@
+"*.{ts,js}":
+  - yarn lint
+"*.sol":
+  - yarn solhint -f table

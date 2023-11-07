@@ -1,0 +1,46 @@
+{
+  "name": "@constellation-labs/key-manager",
+  "version": "0.7.8",
+  "description": "[Constellation] Keys and secrets management",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist/*"
+  ],
+  "scripts": {
+    "all": "yarn clean && yarn build && yarn test && yarn lint:fix && yarn lint",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist/ ./tsconfig.tsbuildinfo",
+    "lint": "yarn lint:fix && yarn lint:check",
+    "lint:check": "eslint . --max-warnings=0",
+    "lint:fix": "yarn lint:check --fix",
+    "pre-commit": "lint-staged",
+    "test": "ts-mocha test/*.spec.ts",
+    "test:coverage": "nyc ts-mocha test/*.spec.ts && nyc merge .nyc_output coverage.json"
+  },
+  "keywords": [
+    "optimism",
+    "ethereum",
+    "key",
+    "secret"
+  ],
+  "license": "MIT",
+  "author": "Constellation Labs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ConstellationCrypto/Constellation-Optimism.git"
+  },
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.162.0",
+    "asn1.js": "^5.4.1",
+    "aws-sdk": "^2.922.0",
+    "bn.js": "^5.2.0",
+    "ethers": "^5.6.8"
+  },
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^10.0.0",
+    "sinon": "^14.0.0"
+  }
+}

@@ -1,0 +1,57 @@
+name: geth unit tests
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    paths:
+      - 'l2geth/**'
+    branches:
+      - 'master'
+      - 'develop'
+      - '*rc'
+      - 'release/*'
+  pull_request:
+    paths:
+      - 'l2geth/**'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ./l2geth
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18.x
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Lint
+      run: make lint
+
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18.x
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install
+      run: make
+
+    - name: Test
+      run: make test

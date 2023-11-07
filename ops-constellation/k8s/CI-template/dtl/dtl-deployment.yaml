@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: dtl
+  name: dtl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: dtl
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: dtl
+    spec:
+      containers:
+      - command:
+        - ./dtl.sh
+        envFrom:
+          - configMapRef:
+              name: envs-dtl-env
+        env:
+        # used for setting the address manager address
+        - name: URL
+          value: "http://deployer:8081/addresses.json"
+        # connect to the 2 layers
+        - name: DATA_TRANSPORT_LAYER__L1_RPC_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: DATA_TRANSPORT_LAYER__L2_RPC_ENDPOINT
+          value: "http://l2geth:8545"
+        - name: DATA_TRANSPORT_LAYER__SYNC_FROM_L2
+          value: "true"
+        - name: DATA_TRANSPORT_LAYER__L2_CHAIN_ID
+          valueFrom:
+            configMapKeyRef:
+              key: L2_CHAIN_ID
+              name: envs-main-env
+        - name: DATA_TRANSPORT_LAYER__L1_START_HEIGHT
+          valueFrom:
+            configMapKeyRef:
+              key: L1_START_HEIGHT
+              name: envs-main-env
+        image: ethereumoptimism/data-transport-layer:latest
+        imagePullPolicy: Never
+        name: dtl
+        ports:
+        - containerPort: 7878
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

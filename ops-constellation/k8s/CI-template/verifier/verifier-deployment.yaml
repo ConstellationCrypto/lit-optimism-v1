@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+    kompose.version: 1.21.0 (992df58d8)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: verifier
+  name: verifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: verifier
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /snap/kompose/19/kompose-linux-amd64 convert -f docker-compose-hardhat.yml
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: verifier
+    spec:
+      containers:
+      - command:
+        - geth
+        envFrom:
+          - configMapRef:
+              name: envs-geth-env
+          - configMapRef:
+              name: envs-system-addr-env
+        env:
+        - name: ETH1_HTTP
+          valueFrom:
+            configMapKeyRef:
+              key: L1_RPC_URL
+              name: envs-main-env
+        - name: OVM_BLOCK_SIGNER_PRIVATE_KEY
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_BLOCK_SIGNER_PRIVATE_KEY
+              name: envs-main-env
+        - name: OVM_BLOCK_SIGNER_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              key: OVM_BLOCK_SIGNER_ADDRESS
+              name: envs-main-env
+        - name: SEQUENCER_CLIENT_HTTP
+          value: "http://l2geth:8545"
+        - name: ROLLUP_STATE_DUMP_PATH
+          value: "http://deployer:8081/state-dump.latest.json"
+        - name: ROLLUP_CLIENT_HTTP
+          value: "http://dtl:7878"
+        - name: ROLLUP_BACKEND
+          value: "l1"
+        - name: ETH1_CTC_DEPLOYMENT_HEIGHT
+          valueFrom:
+            configMapKeyRef:
+              key: L1_START_HEIGHT
+              name: envs-main-env
+        - name: RETRIES
+          value: "60"
+        - name: ROLLUP_VERIFIER_ENABLE
+          value: "true"
+        image: ethereumoptimism/l2geth:latest
+        imagePullPolicy: Never
+        name: verifier
+        ports:
+        - containerPort: 8545
+        - containerPort: 8546
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

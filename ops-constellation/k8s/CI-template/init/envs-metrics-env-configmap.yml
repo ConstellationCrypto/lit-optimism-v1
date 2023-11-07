@@ -1,0 +1,13 @@
+# Not used yet, as we don't yet support metrics on Kubernetes.
+
+# apiVersion: v1
+# data:
+#   GF_SECURITY_ADMIN_PASSWORD: "optimism"
+#   INFLUXDB_HTTP_AUTH_ENABLED: "false"
+#   INFLUXDB_DB: "l2geth"
+# kind: ConfigMap
+# metadata:
+#   creationTimestamp: null
+#   labels:
+#     io.kompose.service: metrics-envs-metrics-env
+#   name: envs-metrics-env

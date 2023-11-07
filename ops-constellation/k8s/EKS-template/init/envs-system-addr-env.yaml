@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envs-system-addr-env
+data:
+  # OK to publish this since it will only ever be used in itests
+  SYSTEM_ADDRESS_0_DEPLOYER: "0xa961b0d6dce82db098cf70a42a14add3ee3db2d5"
+  SYSTEM_ADDRESS_0_DEPLOYER_KEY: 'a6aecc98b63bafb0de3b29ae9964b14acb4086057808be29f90150214ebd4a0f'
+
+  # OK to publish this since it will only ever be used in itests
+  SYSTEM_ADDRESS_1_DEPLOYER: "0xdfc82d475833a50de90c642770f34a9db7deb725"
+  SYSTEM_ADDRESS_1_DEPLOYER_KEY: '3b8d2345102cce2443acb240db6e87c8edd4bb3f821b17fab8ea2c9da08ea132'
+
